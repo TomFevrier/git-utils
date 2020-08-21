@@ -39,8 +39,7 @@ const req = https.request(url, options, res => {
 			process.exit(1);
 		}
 		exec(`git init ${REPO_NAME}`);
-		exec(`cd ${REPO_NAME}`);
-		exec(`git remote add origin ${data.html_url}`);
+		exec(`cd ${REPO_NAME} ; git remote add origin ${data.html_url}`);
 		console.log('\x1b[35m\x1b[1m%s\x1b[0m', `New repository created: ${data.html_url}.`);
 	});
 });
