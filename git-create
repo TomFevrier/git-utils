@@ -1,0 +1,49 @@
+#!/usr/bin/node
+
+const https = require('https');
+const { exec } = require('child_process');
+
+if (process.argv.length < 3) {
+	console.log('\x1b[31m\x1b[1m%s\x1b[0m', 'No name specified for the repository.');
+	process.exit(1);
+}
+
+const USERNAME = 'TomFevrier';
+const PASSWORD = '2csiluelbhAE';
+const REPO_NAME = process.argv[2];
+
+const url = 'https://api.github.com/user/repos';
+const body = JSON.stringify({ name: REPO_NAME });
+
+const options = {
+	auth: [USERNAME, PASSWORD].join(':'),
+	method: 'POST',
+	headers: {
+		'Accept': 'application/vnd.github.v3+json',
+		'User-Agent': USERNAME,
+		'Content-Type': 'application/json',
+		'Content-Length': body.length
+	}
+};
+
+const req = https.request(url, options, res => {
+	const chunks = [];
+	res.setEncoding('utf8');
+	res.on('data', chunk => chunks.push(chunk));
+	res.on('end', () => {
+		const data = JSON.parse(chunks.join(''));
+		if (data.errors) {
+			const info = data.errors[0];
+			console.log('\x1b[31m\x1b[1m%s\x1b[0m', data.message);
+			console.log('\x1b[31m%s\x1b[0m', `${info.resource} ${info.message}.`);
+			process.exit(1);
+		}
+		exec(`git init ${REPO_NAME}`);
+		exec(`cd ${REPO_NAME}`);
+		exec(`git remote add origin ${data.html_url}`);
+		console.log('\x1b[35m\x1b[1m%s\x1b[0m', `New repository created: ${data.html_url}.`);
+	});
+});
+
+req.write(body);
+req.end();

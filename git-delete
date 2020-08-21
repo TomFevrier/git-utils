@@ -1,0 +1,73 @@
+#!/usr/bin/node
+
+const https = require('https');
+const readline = require('readline');
+
+if (process.argv.length < 3) {
+	console.log('\x1b[31m\x1b[1m%s\x1b[0m', 'No name specified for the repository.');
+	process.exit(1);
+}
+
+const USERNAME = 'TomFevrier';
+const PASSWORD = '2csiluelbhAE';
+const REPO_NAME = process.argv[2];
+
+const hiddenQuestion = (question, callback) => {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout
+	});
+
+	process.stdin.on('data', char => {
+		if ("\n\r".indexOf(char) < 0) {
+			process.stdout.clearLine();
+			readline.cursorTo(process.stdout, 0);
+			// process.stdout.write(question + Array(rl.line.length + 1).join('*'));
+			process.stdout.write(question);
+		}
+	});
+
+	rl.question(question, password => {
+		callback(password);
+		rl.close();
+	});
+
+}
+
+hiddenQuestion('Are you sure? Enter your password to confirm: ', password => {
+	if (password.trim() !== PASSWORD) {
+		console.log('\x1b[31m\x1b[1m%s\x1b[0m', 'Password is invalid: operation cancelled.');
+		process.exit(1);
+	}
+
+	const url = `https://api.github.com/repos/${USERNAME}/${REPO_NAME}`;
+
+	const options = {
+		auth: [USERNAME, PASSWORD].join(':'),
+		method: 'DELETE',
+		headers: {
+			'Accept': 'application/vnd.github.v3+json',
+			'User-Agent': USERNAME,
+		}
+	};
+
+	const req = https.request(url, options, res => {
+		const chunks = [];
+		res.setEncoding('utf8');
+		res.on('data', chunk => chunks.push(chunk));
+		res.on('end', () => {
+			if (chunks.length === 0) {
+				console.log('\x1b[35m\x1b[1m%s\x1b[0m', `Repository ${USERNAME}/${REPO_NAME} deleted.`);
+				process.exit(0);
+			}
+			const data = JSON.parse(chunks.join(''));
+			if (data.message) {
+				console.log('\x1b[31m\x1b[1m%s\x1b[0m', `Repository deletion failed.`);
+				console.log('\x1b[31m%s\x1b[0m', `Repository does not exist.`);
+				process.exit(1);
+			}
+		});
+	});
+
+	req.end();
+});
